@@ -393,23 +393,25 @@
         thresholds: [3, 5, 8]
         argumentsPreviewChars: 500
 
-    # Every mode enables the stable model-facing web_search tool. DeepSeek search
-    # resolves the same DEEPSEEK_API_KEY credential the Models page manages for
-    # chat, at each search; its Messages endpoint is separate from the
-    # chat-completions endpoint, so it takes its own base-URL override. Fetch stays
-    # disabled and no fetch provider is mounted: that provider defers SSRF
-    # protection and the model would choose the request target. Search is a full
-    # auxiliary model request with server-side retrieval, so this shipped DeepSeek
-    # route gets 60s while the provider-neutral tool default remains 30s.
+    # Every mode enables the stable model-facing web_search tool. OneAPI search
+    # resolves ONEAPI_API_KEY per request and uses the Anthropic Messages
+    # endpoint with the hosted web_search_20250305 tool. Fetch stays disabled
+    # and no fetch provider is mounted: that provider defers SSRF protection
+    # and the model would choose
+    # the request target. Search is a full auxiliary model request with
+    # server-side retrieval, so this route gets 60s while the provider-neutral
+    # tool default remains 30s.
     - id: web
       name: '@deepseek-ai/dsh-web'
       config:
-        searchProvider: deepseek-official
+        searchProvider: oneapi
 
-    - id: web-search-deepseek
-      name: '@deepseek-ai/dsh-web-search-deepseek'
+    - id: web-search-oneapi
+      name: '@deepseek-ai/dsh-web-search-oneapi'
       config:
-        apiKeyEnv: DEEPSEEK_API_KEY
+        apiKeyEnv: ONEAPI_API_KEY
+        baseURL: https://oneapi-comate.baidu-int.com
+        model: DeepSeek-V4-Pro
 
     - id: tool-web
       name: '@deepseek-ai/dsh-tool-web'
