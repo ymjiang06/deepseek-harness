@@ -8,6 +8,7 @@ import type {
   StoredImageAttachment,
 } from '@deepseek-ai/dsh-attachment'
 import LlmRuntime, { createUserMessage, CONTEXT_WINDOW_EXCEEDED_CODE, LlmError, ReasoningEffortId, userAgent } from '@deepseek-ai/dsh-llm'
+import type { ToolSchema } from '@deepseek-ai/dsh-llm'
 import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
@@ -152,6 +153,61 @@ describe('PiAiAdapter provider routing', () => {
     const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
 
     expect(result.message.content).toEqual([{ type: 'text', text: 'hello' }])
+  })
+
+  it('adds explicit required arrays for OpenAI-compatible object tool schemas', async () => {
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = await harness(server.url)
+    const tools: ToolSchema[] = [
+      {
+        name: 'get_goal',
+        description: 'Read the current goal.',
+        parameters: { type: 'object', properties: {} },
+      },
+      {
+        name: 'nested',
+        description: 'Use nested object schemas.',
+        parameters: {
+          type: 'object',
+          properties: {
+            settings: { type: 'object', properties: {}, required: null },
+            entries: { type: 'array', items: { type: 'object', properties: {} } },
+          },
+          required: ['settings'],
+        },
+      },
+    ]
+
+    await assemble(ctx, { model: 'deepseek-v4-flash', messages: [], tools })
+
+    const request = server.requests[0] as { tools?: Array<{ function?: { name?: string; parameters?: unknown } }> }
+    expect(request.tools).toEqual([
+      {
+        type: 'function',
+        function: {
+          name: 'get_goal',
+          description: 'Read the current goal.',
+          parameters: { type: 'object', properties: {}, required: [] },
+          strict: false,
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'nested',
+          description: 'Use nested object schemas.',
+          parameters: {
+            type: 'object',
+            properties: {
+              settings: { type: 'object', properties: {}, required: [] },
+              entries: { type: 'array', items: { type: 'object', properties: {}, required: [] } },
+            },
+            required: ['settings'],
+          },
+          strict: false,
+        },
+      },
+    ])
   })
 
   it('names a route by its displayName, and by its own key once the profiles drop it', () => {
