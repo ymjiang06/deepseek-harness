@@ -318,7 +318,7 @@ export class PiAiAdapter extends LlmAdapter {
       }
       const context = attachments === undefined
         ? toPiContext(options, undefined, onReplayDegrade)
-        : await toPiContext(options, attachments, onReplayDegrade)
+        : await toPiContext(options, attachments, onReplayDegrade, profile.maxRequestImageBytes)
       const events = snapshot.models.streamSimple(model, context, {
         ...profileOptions(profile, reasoning, apiKey),
         ...model.api === 'openai-completions'
